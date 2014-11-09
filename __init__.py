@@ -1,5 +1,6 @@
-# This file is part of LiSE, a framework for life simulation games.
-# Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
+# This file is part of the kivy-garden project.
+# Copyright (c) 2014 Zachary Spector,  zacharyspector@gmail.com
+# Available under the terms of the MIT license.
 """Several textures superimposed on one another, and possibly offset
 by some amount.
 
@@ -196,10 +197,15 @@ class ImageStack(TextureStack):
 
     """
     paths = ListProperty([])
+    """List of paths to images you want stacked."""
     pathtexs = DictProperty({})
+    """Private. Dictionary mapping image paths to textures of the images."""
 
     def on_paths(self, *args):
-        """Make textures from the paths and assign them at the same index"""
+        """Make textures from the images in ``paths``, and assign them at the
+        same index in my ``texs`` as in my ``paths``.
+
+        """
         i = 0
         for path in self.paths:
             if path in self.pathtexs:
