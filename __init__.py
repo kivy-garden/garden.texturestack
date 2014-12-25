@@ -135,8 +135,7 @@ class TextureStack(Widget):
 
     def _clear_rects(self):
         """Get rid of all my rectangles (but not those of my children)."""
-        for rect in self.texture_rectangles.values():
-            self.canvas.remove(rect)
+        self.canvas.clear()
         self.texture_rectangles = {}
 
     def clear(self):
