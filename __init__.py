@@ -208,7 +208,10 @@ class ImageStack(TextureStack):
         i = 0
         for path in self.paths:
             if path in self.pathtexs:
-                if self.texs.index(self.pathtexs[path]) == i:
+                if (
+                        self.pathtexs[path] in self.texs and
+                        self.texs.index(self.pathtexs[path])== i
+                ):
                     continue
             else:
                 self.pathtexs[path] = Image.load(resource_find(path)).texture
