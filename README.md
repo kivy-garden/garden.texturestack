@@ -1,7 +1,7 @@
 texturestack
 ============
-Widget for superimposing several textures one on top of the other, such that they move like they are a single texture. 
+Widget for compositing textures, like virtual paper dolls.
 
-Good for constructing virtual paper dolls, such as those used to represent the player character in eg. Dungeon Crawl Stone Soup.
+"Virtual paper doll" is a technique for building sprite graphics used in, eg., the player avatar in Dungeon Crawl Stone Soup. Basically, you just put the sprites one on top of the other, and then move them around like they're one sprite. You might do this with plain Image widgets, but I found it awkward to manage the exact order of the various subwidgets, so I made this one.
 
 Includes two classes: TextureStack proper requires a list of kivy Texture objects; ImageStack is happy with a list of paths to loadable images.
