@@ -38,11 +38,6 @@ class TextureStack(Widget):
     """
     texs = ListProperty([])
     """Texture objects"""
-    stackhs = ListProperty([])
-    """Stacking heights. All textures following one with a nonzero
-    stacking height are moved up by that number of pixels (cumulative).
-
-    """
     offxs = ListProperty([])
     """x-offsets. The texture at the same index will be moved to the right
     by the number of pixels in this list.
@@ -53,7 +48,7 @@ class TextureStack(Widget):
     the number of pixels in this list.
 
     """
-    texture_rectangles = DictProperty({})
+    _texture_rectangles = DictProperty({})
     """Private.
 
     Rectangle instructions for each of the textures, keyed by the
@@ -68,6 +63,7 @@ class TextureStack(Widget):
         kwargs['size_hint'] = (None, None)
         self.group = InstructionGroup()
         super().__init__(**kwargs)
+        self.bind(offxs=self.on_pos, offys=self.on_pos)
 
     def on_texs(self, *args):
         """Make rectangles for each of the textures and add them to the
@@ -80,10 +76,9 @@ class TextureStack(Widget):
             Clock.schedule_once(self.on_texs, 0)
             return
         texlen = len(self.texs)
-        props = ('stackhs', 'offxs', 'offys')
         # Ensure each property is the same length as my texs, padding
         # with 0 as needed
-        for prop in props:
+        for prop in ('offxs', 'offys'):
             proplen = len(getattr(self, prop))
             if proplen > texlen:
                 setattr(self, prop, getattr(self, prop)[:proplen-texlen])
@@ -93,50 +88,42 @@ class TextureStack(Widget):
                 setattr(self, prop, propval)
         self._clear_rects()
         w = h = 0
-        stackh = 0
-        i = 0
         (x, y) = self.pos
-        if self.group in self.canvas.children:
-            self.canvas.remove(self.group)
-        for tex in self.texs:
-            offx = self.offxs[i] if self.offxs[i] > 0 else 0
-            offy = self.offys[i] if self.offys[i] > 0 else 0
+        for tex, offx, offy in zip(self.texs, self.offxs, self.offys):
             rect = Rectangle(
-                pos=(x+offx, y+offy+stackh),
+                pos=(x+offx, y+offy),
                 size=tex.size,
                 texture=tex
             )
-            self.texture_rectangles[tex] = rect
+            self._texture_rectangles[tex] = rect
             self.group.add(rect)
             tw = tex.width + offx
-            th = tex.height + offy + stackh
+            th = tex.height + offy
             if tw > w:
                 w = tw
             if th > h:
                 h = th
-            stackh += self.stackhs[i] if self.stackhs[i] > 0 else 0
-            i += 1
-        if not self._no_use_canvas:
-            self.canvas.add(self.group)
         self.size = (w, h)
+        if self.group not in self.canvas.children:
+            self.canvas.add(self.group)
 
     def on_pos(self, *args):
-        """Move all the rectangles within this widget to reflect the widget's
-        position. Take stacking height into account.
+        """Move all the rectangles within this widget to reflect the widget's position.
 
         """
-        stackh = 0
-        i = 0
         (x, y) = self.pos
-        for rect in self.texture_rectangles.values():
-            rect.pos = (x, y+stackh)
-            stackh += self.stackhs[i]
-            i += 1
+        for tex, offx, offy in zip(self.texs, self.offxs, self.offys):
+            if tex not in self._texture_rectangles:
+                Clock.schedule_once(self.on_pos, 0)
+                return
+            rect = self._texture_rectangles[tex]
+            rect.pos = x + offx, y + offy
 
     def _clear_rects(self):
         """Get rid of all my rectangles (but not those of my children)."""
-        self.canvas.clear()
-        self.texture_rectangles = {}
+        for rect in self._texture_rectangles.values():
+            self.group.remove(rect)
+        self._texture_rectangles = {}
 
     def clear(self):
         """Clear my rectangles, ``texs``, and ``stackhs``."""
@@ -165,9 +152,9 @@ class TextureStack(Widget):
         """Remove a texture, its rectangle, and its stacking height"""
         tex = self.texs[i]
         try:
-            rect = self.texture_rectangles[tex]
+            rect = self._texture_rectangles[tex]
             self.canvas.remove(rect)
-            del self.texture_rectangles[tex]
+            del self._texture_rectangles[tex]
         except KeyError:
             pass
         del self.stackhs[i]
