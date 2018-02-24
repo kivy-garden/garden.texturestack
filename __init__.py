@@ -55,8 +55,6 @@ class TextureStack(Widget):
     texture.
 
     """
-    _no_tex_upd = BooleanProperty(False)
-    _no_use_canvas = BooleanProperty(False)
 
     def __init__(self, **kwargs):
         """Make triggers and bind."""
@@ -70,8 +68,6 @@ class TextureStack(Widget):
         canvas, taking their stacking heights into account.
 
         """
-        if self._no_tex_upd:
-            return
         if not self.canvas or not self.texs:
             Clock.schedule_once(self.on_texs, 0)
             return
