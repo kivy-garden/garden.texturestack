@@ -18,6 +18,7 @@ from kivy.graphics import (
     InstructionGroup
 )
 from kivy.properties import (
+    AliasProperty,
     ListProperty,
     DictProperty,
     BooleanProperty,
@@ -48,6 +49,23 @@ class TextureStack(Widget):
     the number of pixels in this list.
 
     """
+    def _get_offsets(self):
+        return zip(self.offxs, self.offys)
+
+    def _set_offsets(self, offs):
+        offxs = []
+        offys = []
+        for x, y in offs:
+            offxs.append(x)
+            offys.append(y)
+        self.offxs, self.offys = offxs, offys
+
+    offsets = AliasProperty(
+        _get_offsets,
+        _set_offsets,
+        bind=('offxs', 'offys')
+    )
+    """List of (x, y) tuples by which to offset the corresponding texture."""
     _texture_rectangles = DictProperty({})
     """Private.
 
