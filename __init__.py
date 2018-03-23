@@ -1,5 +1,5 @@
 # This file is part of the kivy-garden project.
-# Copyright (c) 2014 Zachary Spector,  zacharyspector@gmail.com
+# Copyright (c) Zachary Spector, public@zacharyspector.com
 # Available under the terms of the MIT license.
 """Several textures superimposed on one another, and possibly offset
 by some amount.
