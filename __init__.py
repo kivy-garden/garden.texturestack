@@ -22,8 +22,10 @@ from kivy.graphics import (
 )
 from kivy.properties import (
     AliasProperty,
-    ListProperty,
+    BooleanProperty,
     DictProperty,
+    ListProperty,
+    ObjectProperty
 )
 from kivy.clock import Clock
 from kivy.resources import resource_find
@@ -51,6 +53,16 @@ class TextureStack(Widget):
     the number of pixels in this list.
 
     """
+    use_canvas = BooleanProperty(True)
+    """Whether to actually add my textures to my canvas.
+    
+    With this set to ``False``, I'll be invisible, but you can get an
+    ``InstructionGroup`` of my graphics from my ``group`` property.
+    
+    """
+    group = ObjectProperty()
+    """My ``InstructionGroup``, suitable for addition to whatever ``canvas``."""
+
     def _get_offsets(self):
         return zip(self.offxs, self.offys)
 
@@ -127,7 +139,7 @@ class TextureStack(Widget):
                 h = th
         self.size = (w, h)
         self.group.add(PopMatrix())
-        if self.group not in self.canvas.children:
+        if self.use_canvas and self.group not in self.canvas.children:
             self.canvas.add(self.group)
 
     def on_pos(self, *args):
