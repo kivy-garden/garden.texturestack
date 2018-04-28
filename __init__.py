@@ -10,18 +10,20 @@ graphics layered on one another. This widget simplifies the management
 of such compositions.
 
 """
-
+from kivy.logger import Logger
 from kivy.uix.widget import Widget
 from kivy.core.image import Image
 from kivy.graphics import (
     Rectangle,
-    InstructionGroup
+    InstructionGroup,
+    PushMatrix,
+    PopMatrix,
+    Translate
 )
 from kivy.properties import (
     AliasProperty,
     ListProperty,
     DictProperty,
-    BooleanProperty,
 )
 from kivy.clock import Clock
 from kivy.resources import resource_find
@@ -77,6 +79,7 @@ class TextureStack(Widget):
     def __init__(self, **kwargs):
         """Make triggers and bind."""
         kwargs['size_hint'] = (None, None)
+        self.translate = Translate(0, 0)
         self.group = InstructionGroup()
         super().__init__(**kwargs)
         self.bind(offxs=self.on_pos, offys=self.on_pos)
@@ -100,12 +103,17 @@ class TextureStack(Widget):
                 propval = list(getattr(self, prop))
                 propval += [0] * (texlen - proplen)
                 setattr(self, prop, propval)
-        self._clear_rects()
+        self.group.clear()
+        self._texture_rectangles = {}
         w = h = 0
         (x, y) = self.pos
+        self.translate.x = x
+        self.translate.y = y
+        self.group.add(PushMatrix())
+        self.group.add(self.translate)
         for tex, offx, offy in zip(self.texs, self.offxs, self.offys):
             rect = Rectangle(
-                pos=(x+offx, y+offy),
+                pos=(offx, offy),
                 size=tex.size,
                 texture=tex
             )
@@ -118,30 +126,23 @@ class TextureStack(Widget):
             if th > h:
                 h = th
         self.size = (w, h)
+        self.group.add(PopMatrix())
         if self.group not in self.canvas.children:
             self.canvas.add(self.group)
 
     def on_pos(self, *args):
-        """Move all the rectangles within this widget to reflect the widget's position.
+        """Translate all the rectangles within this widget to reflect the widget's position.
 
         """
         (x, y) = self.pos
-        for tex, offx, offy in zip(self.texs, self.offxs, self.offys):
-            if tex not in self._texture_rectangles:
-                Clock.schedule_once(self.on_pos, 0)
-                return
-            rect = self._texture_rectangles[tex]
-            rect.pos = x + offx, y + offy
-
-    def _clear_rects(self):
-        """Get rid of all my rectangles (but not those of my children)."""
-        for rect in self._texture_rectangles.values():
-            self.group.remove(rect)
-        self._texture_rectangles = {}
+        Logger.debug("TextureStack: repositioning to {}".format((x, y)))
+        self.translate.x = x
+        self.translate.y = y
 
     def clear(self):
         """Clear my rectangles, ``texs``, and ``stackhs``."""
-        self._clear_rects()
+        self.group.clear()
+        self._texture_rectangles = {}
         self.texs = []
         self.stackhs = []
         self.size = [1, 1]
@@ -243,3 +244,35 @@ class ImageStack(TextureStack):
         r = self.paths[i]
         del self[i]
         return r
+
+
+if __name__ == '__main__':
+    from kivy.base import runTouchApp
+    from kivy.uix.floatlayout import FloatLayout
+    from itertools import cycle
+    import json
+
+    class DraggyStack(ImageStack):
+        def on_touch_down(self, touch):
+            if self.collide_point(*touch.pos):
+                touch.grab(self)
+                parent = self.parent
+                parent.remove_widget(self)
+                parent.add_widget(self)
+                return True
+
+        def on_touch_move(self, touch):
+            if touch.grab_current is self:
+                self.center = touch.pos
+
+    with open('marsh_davies_island_bg.atlas') as bgf, open('marsh_davies_island_fg.atlas') as fgf:
+        pathses = zip(
+    ('atlas://marsh_davies_island_bg/' + name for name in json.load(bgf)["marsh_davies_island_bg-0.png"].keys()),
+    ('atlas://marsh_davies_island_fg/' + name for name in cycle(json.load(fgf)["marsh_davies_island_fg-0.png"].keys()))
+    )
+    layout = FloatLayout()
+    for i, paths in enumerate(pathses):
+        layout.add_widget(
+            DraggyStack(paths=list(paths), offxs=[0,16], offys=[0,16], pos=(0, 32*i))
+        )
+    runTouchApp(layout)
