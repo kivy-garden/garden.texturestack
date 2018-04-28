@@ -39,14 +39,14 @@ class TextureStack(Widget):
     management of such compositions.
 
     """
-    texs = ListProperty([])
+    texs = ListProperty()
     """Texture objects"""
-    offxs = ListProperty([])
+    offxs = ListProperty()
     """x-offsets. The texture at the same index will be moved to the right
     by the number of pixels in this list.
 
     """
-    offys = ListProperty([])
+    offys = ListProperty()
     """y-offsets. The texture at the same index will be moved upward by
     the number of pixels in this list.
 
@@ -197,9 +197,9 @@ class ImageStack(TextureStack):
     textures may be loaded from.
 
     """
-    paths = ListProperty([])
+    paths = ListProperty()
     """List of paths to images you want stacked."""
-    pathtexs = DictProperty({})
+    pathtexs = DictProperty()
     """Private. Dictionary mapping image paths to textures of the images."""
 
     def on_paths(self, *args):
