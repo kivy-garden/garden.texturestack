@@ -245,3 +245,34 @@ class ImageStack(TextureStack):
         del self[i]
         return r
 
+
+if __name__ == '__main__':
+    from kivy.base import runTouchApp
+    from kivy.uix.floatlayout import FloatLayout
+    from itertools import cycle
+    import json
+
+    class DraggyStack(ImageStack):
+        def on_touch_down(self, touch):
+            if self.collide_point(*touch.pos):
+                touch.grab(self)
+                parent = self.parent
+                parent.remove_widget(self)
+                parent.add_widget(self)
+                return True
+
+        def on_touch_move(self, touch):
+            if touch.grab_current is self:
+                self.center = touch.pos
+
+    with open('marsh_davies_island_bg.atlas') as bgf, open('marsh_davies_island_fg.atlas') as fgf:
+        pathses = zip(
+    ('atlas://marsh_davies_island_bg/' + name for name in json.load(bgf)["marsh_davies_island_bg-0.png"].keys()),
+    ('atlas://marsh_davies_island_fg/' + name for name in cycle(json.load(fgf)["marsh_davies_island_fg-0.png"].keys()))
+    )
+    layout = FloatLayout()
+    for i, paths in enumerate(pathses):
+        layout.add_widget(
+            DraggyStack(paths=list(paths), offxs=[0,16], offys=[0,16], pos=(0, 32*i))
+        )
+    runTouchApp(layout)
