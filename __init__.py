@@ -103,7 +103,8 @@ class TextureStack(Widget):
                 propval = list(getattr(self, prop))
                 propval += [0] * (texlen - proplen)
                 setattr(self, prop, propval)
-        self._clear_rects()
+        self.group.clear()
+        self._texture_rectangles = {}
         w = h = 0
         (x, y) = self.pos
         self.translate.x = x
@@ -138,15 +139,10 @@ class TextureStack(Widget):
         self.translate.x = x
         self.translate.y = y
 
-    def _clear_rects(self):
-        """Get rid of all my rectangles (but not those of my children)."""
-        for rect in self._texture_rectangles.values():
-            self.group.remove(rect)
-        self._texture_rectangles = {}
-
     def clear(self):
         """Clear my rectangles, ``texs``, and ``stackhs``."""
-        self._clear_rects()
+        self.group.clear()
+        self._texture_rectangles = {}
         self.texs = []
         self.stackhs = []
         self.size = [1, 1]
