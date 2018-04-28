@@ -10,18 +10,20 @@ graphics layered on one another. This widget simplifies the management
 of such compositions.
 
 """
-
+from kivy.logger import Logger
 from kivy.uix.widget import Widget
 from kivy.core.image import Image
 from kivy.graphics import (
     Rectangle,
-    InstructionGroup
+    InstructionGroup,
+    PushMatrix,
+    PopMatrix,
+    Translate
 )
 from kivy.properties import (
     AliasProperty,
     ListProperty,
     DictProperty,
-    BooleanProperty,
 )
 from kivy.clock import Clock
 from kivy.resources import resource_find
@@ -77,6 +79,7 @@ class TextureStack(Widget):
     def __init__(self, **kwargs):
         """Make triggers and bind."""
         kwargs['size_hint'] = (None, None)
+        self.translate = Translate(0, 0)
         self.group = InstructionGroup()
         super().__init__(**kwargs)
         self.bind(offxs=self.on_pos, offys=self.on_pos)
@@ -103,9 +106,13 @@ class TextureStack(Widget):
         self._clear_rects()
         w = h = 0
         (x, y) = self.pos
+        self.translate.x = x
+        self.translate.y = y
+        self.group.add(PushMatrix())
+        self.group.add(self.translate)
         for tex, offx, offy in zip(self.texs, self.offxs, self.offys):
             rect = Rectangle(
-                pos=(x+offx, y+offy),
+                pos=(offx, offy),
                 size=tex.size,
                 texture=tex
             )
@@ -118,20 +125,18 @@ class TextureStack(Widget):
             if th > h:
                 h = th
         self.size = (w, h)
+        self.group.add(PopMatrix())
         if self.group not in self.canvas.children:
             self.canvas.add(self.group)
 
     def on_pos(self, *args):
-        """Move all the rectangles within this widget to reflect the widget's position.
+        """Translate all the rectangles within this widget to reflect the widget's position.
 
         """
         (x, y) = self.pos
-        for tex, offx, offy in zip(self.texs, self.offxs, self.offys):
-            if tex not in self._texture_rectangles:
-                Clock.schedule_once(self.on_pos, 0)
-                return
-            rect = self._texture_rectangles[tex]
-            rect.pos = x + offx, y + offy
+        Logger.debug("TextureStack: repositioning to {}".format((x, y)))
+        self.translate.x = x
+        self.translate.y = y
 
     def _clear_rects(self):
         """Get rid of all my rectangles (but not those of my children)."""
@@ -243,3 +248,4 @@ class ImageStack(TextureStack):
         r = self.paths[i]
         del self[i]
         return r
+
