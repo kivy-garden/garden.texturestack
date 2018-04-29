@@ -201,7 +201,7 @@ class ImageStack(TextureStack):
     """List of paths to images you want stacked."""
     pathtexs = DictProperty()
     """Private. Dictionary mapping image paths to textures of the images."""
-    imgs = DictProperty()
+    pathimgs = DictProperty()
     """Dictionary mapping image paths to ``kivy.core.Image`` objects."""
 
     def on_paths(self, *args):
@@ -218,7 +218,7 @@ class ImageStack(TextureStack):
                 ):
                     continue
             else:
-                self.imgs[path] = img = Image.load(
+                self.pathimgs[path] = img = Image.load(
                     resource_find(path), keep_data=True
                 )
                 self.pathtexs[path] = img.texture
