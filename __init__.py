@@ -147,7 +147,6 @@ class TextureStack(Widget):
 
         """
         (x, y) = self.pos
-        Logger.debug("TextureStack: repositioning to {}".format((x, y)))
         self.translate.x = x
         self.translate.y = y
 
