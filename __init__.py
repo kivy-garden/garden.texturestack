@@ -97,10 +97,7 @@ class TextureStack(Widget):
         self.bind(offxs=self.on_pos, offys=self.on_pos)
 
     def on_texs(self, *args):
-        """Make rectangles for each of the textures and add them to the
-        canvas, taking their stacking heights into account.
-
-        """
+        """Make rectangles for each of the textures and add them to the canvas."""
         if not self.canvas or not self.texs:
             Clock.schedule_once(self.on_texs, 0)
             return
@@ -151,11 +148,10 @@ class TextureStack(Widget):
         self.translate.y = y
 
     def clear(self):
-        """Clear my rectangles, ``texs``, and ``stackhs``."""
+        """Clear my rectangles and ``texs``."""
         self.group.clear()
         self._texture_rectangles = {}
         self.texs = []
-        self.stackhs = []
         self.size = [1, 1]
 
     def insert(self, i, tex):
@@ -175,7 +171,7 @@ class TextureStack(Widget):
         self.insert(len(self.texs), tex)
 
     def __delitem__(self, i):
-        """Remove a texture, its rectangle, and its stacking height"""
+        """Remove a texture and its rectangle"""
         tex = self.texs[i]
         try:
             rect = self._texture_rectangles[tex]
@@ -183,7 +179,6 @@ class TextureStack(Widget):
             del self._texture_rectangles[tex]
         except KeyError:
             pass
-        del self.stackhs[i]
         del self.texs[i]
 
     def __setitem__(self, i, v):
@@ -195,11 +190,7 @@ class TextureStack(Widget):
         self.insert(i, v)
 
     def pop(self, i=-1):
-        """Delete the stacking height and texture at ``i``, returning the
-        texture.
-
-        """
-        self.stackhs.pop(i)
+        """Delete the texture at ``i``, and return it."""
         return self.texs.pop(i)
 
 
