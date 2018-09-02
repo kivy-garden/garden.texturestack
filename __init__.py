@@ -10,7 +10,6 @@ graphics layered on one another. This widget simplifies the management
 of such compositions.
 
 """
-from kivy.logger import Logger
 from kivy.uix.widget import Widget
 from kivy.core.image import Image
 from kivy.graphics import (
