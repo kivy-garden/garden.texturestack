@@ -161,8 +161,7 @@ class TextureStack(Widget):
         """
         if not self.canvas:
             Clock.schedule_once(
-                lambda dt: TextureStack.insert(
-                    self, i, tex), 0)
+                lambda dt: self.insert(i, tex), 0)
             return
         self.texs.insert(i, tex)
 
