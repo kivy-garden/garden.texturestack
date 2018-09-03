@@ -19,6 +19,7 @@ from kivy.graphics import (
     PopMatrix,
     Translate
 )
+from kivy.graphics.fbo import Fbo
 from kivy.properties import (
     AliasProperty,
     BooleanProperty,
@@ -51,13 +52,6 @@ class TextureStack(Widget):
     """y-offsets. The texture at the same index will be moved upward by
     the number of pixels in this list.
 
-    """
-    use_canvas = BooleanProperty(True)
-    """Whether to actually add my textures to my canvas.
-    
-    With this set to ``False``, I'll be invisible, but you can get an
-    ``InstructionGroup`` of my graphics from my ``group`` property.
-    
     """
     group = ObjectProperty()
     """My ``InstructionGroup``, suitable for addition to whatever ``canvas``."""
@@ -135,8 +129,7 @@ class TextureStack(Widget):
                 h = th
         self.size = (w, h)
         self.group.add(PopMatrix())
-        if self.use_canvas and self.group not in self.canvas.children:
-            self.canvas.add(self.group)
+        self.canvas.add(self.group)
 
     def on_pos(self, *args):
         """Translate all the rectangles within this widget to reflect the widget's position.
@@ -251,33 +244,136 @@ class ImageStack(TextureStack):
         return r
 
 
+class TextureStackBatchWidget(Widget):
+    """Widget for efficiently drawing many TextureStacks
+
+    Only add TextureStack or ImageStack widgets to this. Avoid adding
+    any that are to be changed frequently.
+
+    """
+    def __init__(self, **kwargs):
+        self._trigger_redraw = Clock.create_trigger(self.redraw)
+        self._trigger_rebind_children = Clock.create_trigger(self.rebind_children)
+        super(TextureStackBatchWidget, self).__init__(**kwargs)
+
+    def on_parent(self, *args):
+        if not self.canvas:
+            Clock.schedule_once(self.on_parent, 0)
+            return
+        if not hasattr(self, '_fbo'):
+            with self.canvas:
+                self._fbo = Fbo(size=self.size)
+                self._fbo.add_reload_observer(self.redraw)
+                self._translate = Translate(x=self.x, y=self.y)
+                self._rectangle = Rectangle(texture=self._fbo.texture, size=self.size)
+        self.rebind_children()
+
+    def rebind_children(self, *args):
+        child_by_uid = {}
+        for child in self.children:
+            child_by_uid[child.uid] = child
+            child.bind(
+                texs=self._trigger_redraw,
+                offxs=self._trigger_redraw,
+                offys=self._trigger_redraw,
+                pos=self._trigger_redraw
+            )
+        if hasattr(self, '_old_children'):
+            old_children = self._old_children
+            for uid in set(old_children).difference(child_by_uid):
+                old_children[uid].unbind(
+                    texs=self._trigger_redraw,
+                    offxs=self._trigger_redraw,
+                    offys=self._trigger_redraw,
+                    pos=self._trigger_redraw
+                )
+        self.redraw()
+        self._old_children = child_by_uid
+
+    def redraw(self, *args):
+        fbo = self._fbo
+        fbo.bind()
+        fbo.clear()
+        fbo.clear_buffer()
+        fbo.release()
+        for child in self.children:
+            assert child.canvas not in fbo.children
+            fbo.add(child.canvas)
+
+    def on_pos(self, *args):
+        if not hasattr(self, '_translate'):
+            return
+        self._translate.x, self._translate.y = self.pos
+
+    def on_size(self, *args):
+        if not hasattr(self, '_rectangle'):
+            return
+        self._rectangle.size = self._fbo.size = self.size
+        self.redraw()
+
+    def add_widget(self, widget, index=0, canvas=None):
+        if not isinstance(widget, TextureStack):
+            raise TypeError("TextureStackBatch is only for TextureStack")
+        if index == 0 or len(self.children) == 0:
+            self.children.insert(0, widget)
+        else:
+            children = self.children
+            if index >= len(children):
+                index = len(children)
+
+            children.insert(index, widget)
+        widget.parent = self
+        if hasattr(self, '_fbo'):
+            self.rebind_children()
+
+    def remove_widget(self, widget):
+        if widget not in self.children:
+            return
+        self.children.remove(widget)
+        widget.parent = None
+        if hasattr(self, '_fbo'):
+            self.rebind_children()
+
+
 if __name__ == '__main__':
     from kivy.base import runTouchApp
-    from kivy.uix.floatlayout import FloatLayout
     from itertools import cycle
     import json
+
+    # I should come up with a prettier demo that has a whole lot of widgets in it
 
     class DraggyStack(ImageStack):
         def on_touch_down(self, touch):
             if self.collide_point(*touch.pos):
                 touch.grab(self)
-                parent = self.parent
+                self._old_parent = parent = self.parent
                 parent.remove_widget(self)
-                parent.add_widget(self)
+                parent.parent.add_widget(self)
+                assert self in parent.parent.children
+                assert self.parent == parent.parent
                 return True
 
         def on_touch_move(self, touch):
             if touch.grab_current is self:
                 self.center = touch.pos
+                return True
+
+        def on_touch_up(self, touch):
+            self.parent.remove_widget(self)
+            self.pos = self._old_parent.to_local(*self.pos, relative=True)
+            self._old_parent.add_widget(self)
+            return True
 
     with open('marsh_davies_island_bg.atlas') as bgf, open('marsh_davies_island_fg.atlas') as fgf:
         pathses = zip(
     ('atlas://marsh_davies_island_bg/' + name for name in json.load(bgf)["marsh_davies_island_bg-0.png"].keys()),
     ('atlas://marsh_davies_island_fg/' + name for name in cycle(json.load(fgf)["marsh_davies_island_fg-0.png"].keys()))
     )
-    layout = FloatLayout()
+    sbatch = TextureStackBatchWidget(size=(800, 600), pos=(0, 0))
     for i, paths in enumerate(pathses):
-        layout.add_widget(
-            DraggyStack(paths=list(paths), offxs=[0,16], offys=[0,16], pos=(0, 32*i))
+        sbatch.add_widget(
+            DraggyStack(paths=paths, offxs=[0, 16], offys=[0, 16], pos=(0, 32*i)) for i, paths in enumerate(pathses)
         )
-    runTouchApp(layout)
+    parent = Widget(size=(800, 600), pos=(0, 0))
+    parent.add_widget(sbatch)
+    runTouchApp(parent)
