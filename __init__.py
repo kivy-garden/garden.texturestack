@@ -369,7 +369,7 @@ if __name__ == '__main__':
     sbatch = TextureStackBatchWidget(size=(800, 600), pos=(0, 0))
     for i, paths in enumerate(pathses):
         sbatch.add_widget(
-            DraggyStack(paths=paths, offxs=[0, 16], offys=[0, 16], pos=(0, 32*i)) for i, paths in enumerate(pathses)
+            DraggyStack(paths=paths, offxs=[0, 16], offys=[0, 16], pos=(0, 32*i))
         )
     parent = Widget(size=(800, 600), pos=(0, 0))
     parent.add_widget(sbatch)
