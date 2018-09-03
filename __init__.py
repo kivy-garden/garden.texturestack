@@ -22,7 +22,6 @@ from kivy.graphics import (
 from kivy.graphics.fbo import Fbo
 from kivy.properties import (
     AliasProperty,
-    BooleanProperty,
     DictProperty,
     ListProperty,
     ObjectProperty
