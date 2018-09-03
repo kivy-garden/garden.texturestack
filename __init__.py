@@ -201,8 +201,7 @@ class ImageStack(TextureStack):
         same index in my ``texs`` as in my ``paths``.
 
         """
-        i = 0
-        for path in self.paths:
+        for i, path in enumerate(self.paths):
             if path in self.pathtexs:
                 if (
                         self.pathtexs[path] in self.texs and
@@ -218,7 +217,6 @@ class ImageStack(TextureStack):
                 self.texs.append(self.pathtexs[path])
             else:
                 self.texs[i] = self.pathtexs[path]
-            i += 1
 
     def clear(self):
         """Clear paths, textures, rectangles"""
