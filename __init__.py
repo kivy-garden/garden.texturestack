@@ -248,6 +248,9 @@ class TextureStackBatchWidget(Widget):
     any that are to be changed frequently.
 
     """
+    critical_props = ['texs', 'offxs', 'offys', 'pos']
+    """Properties that, when changed on my children, force a redraw."""
+
     def __init__(self, **kwargs):
         self._trigger_redraw = Clock.create_trigger(self.redraw)
         self._trigger_rebind_children = Clock.create_trigger(self.rebind_children)
@@ -267,23 +270,14 @@ class TextureStackBatchWidget(Widget):
 
     def rebind_children(self, *args):
         child_by_uid = {}
+        binds = {prop: self._trigger_redraw for prop in self.critical_props}
         for child in self.children:
             child_by_uid[child.uid] = child
-            child.bind(
-                texs=self._trigger_redraw,
-                offxs=self._trigger_redraw,
-                offys=self._trigger_redraw,
-                pos=self._trigger_redraw
-            )
+            child.bind(**binds)
         if hasattr(self, '_old_children'):
             old_children = self._old_children
             for uid in set(old_children).difference(child_by_uid):
-                old_children[uid].unbind(
-                    texs=self._trigger_redraw,
-                    offxs=self._trigger_redraw,
-                    offys=self._trigger_redraw,
-                    pos=self._trigger_redraw
-                )
+                old_children[uid].unbind(**binds)
         self.redraw()
         self._old_children = child_by_uid
 
