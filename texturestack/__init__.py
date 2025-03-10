@@ -326,7 +326,7 @@ class TextureStackBatchWidget(Widget):
             self.rebind_children()
 
 
-WHICH_TEST = 'old'
+WHICH_TEST = 'new'
 
 
 if __name__ == '__main__':
@@ -376,8 +376,8 @@ if __name__ == '__main__':
         # If WHICH_TEST == 'new', everything looks ok.
         #
         # If WHICH_TEST == 'broken', TextureStackBatchWidget will try to put the
-        # canvases together into a Fbo, but despite no obvious error, nothing
-        # will display.
+        # canvases together into a Fbo, but despite no obvious error, the pawns
+        # won't display. (Spots look fine...?)
         #
         # This is despite WHICH_TEST == 'old' apparently doing more or less
         # the same thing as WHICH_TEST == 'broken'.
@@ -415,14 +415,17 @@ if __name__ == '__main__':
                      {'height': 32, 'width': 32, 'x': 96, 'y': 256},
                      {'height': 32, 'width': 32, 'x': 0, 'y': 32}]
 
+        windo = Widget()
+
         if WHICH_TEST == 'broken':
-            windo = TextureStackBatchWidget()
+            batch = TextureStackBatchWidget(size=(800,600))
+            windo.add_widget(batch)
         else:
-            windo = Widget()
+            windo = batch = Widget()
         for kw in SPOT_DATA:
-            windo.add_widget(ImageStack(**kw))
+            batch.add_widget(ImageStack(**kw))
         for kw in PAWN_DATA:
             if 'paths' not in kw:
                 kw['paths'] = ['atlas://rltiles/dc-mon.atlas/fungus']
-            windo.add_widget(ImageStack(**kw))
+            batch.add_widget(ImageStack(**kw))
         runTouchApp(windo)
