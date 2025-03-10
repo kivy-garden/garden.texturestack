@@ -326,6 +326,9 @@ class TextureStackBatchWidget(Widget):
             self.rebind_children()
 
 
+WHICH_TEST = 'old'
+
+
 if __name__ == '__main__':
     from kivy.base import runTouchApp
     from itertools import cycle
@@ -333,38 +336,93 @@ if __name__ == '__main__':
 
     # I should come up with a prettier demo that has a whole lot of widgets in it
 
-    class DraggyStack(ImageStack):
-        def on_touch_down(self, touch):
-            if self.collide_point(*touch.pos):
-                touch.grab(self)
-                self._old_parent = parent = self.parent
-                parent.remove_widget(self)
-                parent.parent.add_widget(self)
-                assert self in parent.parent.children
-                assert self.parent == parent.parent
+    if WHICH_TEST == 'old':
+        class DraggyStack(ImageStack):
+            def on_touch_down(self, touch):
+                if self.collide_point(*touch.pos):
+                    touch.grab(self)
+                    self._old_parent = parent = self.parent
+                    parent.remove_widget(self)
+                    parent.parent.add_widget(self)
+                    assert self in parent.parent.children
+                    assert self.parent == parent.parent
+                    return True
+
+            def on_touch_move(self, touch):
+                if touch.grab_current is self:
+                    self.center = touch.pos
+                    return True
+
+            def on_touch_up(self, touch):
+                self.parent.remove_widget(self)
+                self.pos = self._old_parent.to_local(*self.pos, relative=True)
+                self._old_parent.add_widget(self)
                 return True
 
-        def on_touch_move(self, touch):
-            if touch.grab_current is self:
-                self.center = touch.pos
-                return True
-
-        def on_touch_up(self, touch):
-            self.parent.remove_widget(self)
-            self.pos = self._old_parent.to_local(*self.pos, relative=True)
-            self._old_parent.add_widget(self)
-            return True
-
-    with open('marsh_davies_island_bg.atlas') as bgf, open('marsh_davies_island_fg.atlas') as fgf:
-        pathses = zip(
-    ('atlas://marsh_davies_island_bg/' + name for name in json.load(bgf)["marsh_davies_island_bg-0.png"].keys()),
-    ('atlas://marsh_davies_island_fg/' + name for name in cycle(json.load(fgf)["marsh_davies_island_fg-0.png"].keys()))
-    )
-    sbatch = TextureStackBatchWidget(size=(800, 600), pos=(0, 0))
-    for i, paths in enumerate(pathses):
-        sbatch.add_widget(
-            DraggyStack(paths=paths, offxs=[0, 16], offys=[0, 16], pos=(0, 32*i))
+        with open('marsh_davies_island_bg.atlas') as bgf, open('marsh_davies_island_fg.atlas') as fgf:
+            pathses = zip(
+        ('atlas://marsh_davies_island_bg/' + name for name in json.load(bgf)["marsh_davies_island_bg-0.png"].keys()),
+        ('atlas://marsh_davies_island_fg/' + name for name in cycle(json.load(fgf)["marsh_davies_island_fg-0.png"].keys()))
         )
-    parent = Widget(size=(800, 600), pos=(0, 0))
-    parent.add_widget(sbatch)
-    runTouchApp(parent)
+        sbatch = TextureStackBatchWidget(size=(800, 600), pos=(0, 0))
+        for i, paths in enumerate(pathses):
+            sbatch.add_widget(
+                DraggyStack(paths=paths, offxs=[0, 16], offys=[0, 16], pos=(0, 32*i))
+            )
+        parent = Widget(size=(800, 600), pos=(0, 0))
+        parent.add_widget(sbatch)
+        runTouchApp(parent)
+    elif WHICH_TEST in {'new', 'broken'}:
+        # If WHICH_TEST == 'new', everything looks ok.
+        #
+        # If WHICH_TEST == 'broken', TextureStackBatchWidget will try to put the
+        # canvases together into a Fbo, but despite no obvious error, nothing
+        # will display.
+        #
+        # This is despite WHICH_TEST == 'old' apparently doing more or less
+        # the same thing as WHICH_TEST == 'broken'.
+
+
+        SPOT_DATA = [{'x': x * 32, 'y': y * 32, 'width': 32, 'height': 32,
+                      'paths': ['atlas://rltiles/floor.atlas/floor-stone']}
+                     for x
+                     in range(10) for y in range(10)]
+        PAWN_DATA = [{'height': 32,
+                      'paths': ['atlas://rltiles/base.atlas/kobold_m'],
+                      'width': 32, 'x': 288, 'y': 288}, {'height': 32,
+                                                         'paths': [
+                                                             'atlas://rltiles/base.atlas/dwarf_m'],
+                                                         'width': 32,
+                                                         'x': 32, 'y': 32},
+                     {'height': 32, 'width': 32, 'x': 32, 'y': 288},
+                     {'height': 32, 'width': 32, 'x': 64, 'y': 64},
+                     {'height': 32, 'width': 32, 'x': 192, 'y': 0},
+                     {'height': 32, 'width': 32, 'x': 224, 'y': 128},
+                     {'height': 32, 'width': 32, 'x': 160, 'y': 0},
+                     {'height': 32, 'width': 32, 'x': 192, 'y': 160},
+                     {'height': 32, 'width': 32, 'x': 288, 'y': 288},
+                     {'height': 32, 'width': 32, 'x': 256, 'y': 160},
+                     {'height': 32, 'width': 32, 'x': 64, 'y': 96},
+                     {'height': 32, 'width': 32, 'x': 160, 'y': 224},
+                     {'height': 32, 'width': 32, 'x': 288, 'y': 0},
+                     {'height': 32, 'width': 32, 'x': 32, 'y': 192},
+                     {'height': 32, 'width': 32, 'x': 224, 'y': 96},
+                     {'height': 32, 'width': 32, 'x': 32, 'y': 256},
+                     {'height': 32, 'width': 32, 'x': 96, 'y': 288},
+                     {'height': 32, 'width': 32, 'x': 64, 'y': 288},
+                     {'height': 32, 'width': 32, 'x': 128, 'y': 160},
+                     {'height': 32, 'width': 32, 'x': 128, 'y': 64},
+                     {'height': 32, 'width': 32, 'x': 96, 'y': 256},
+                     {'height': 32, 'width': 32, 'x': 0, 'y': 32}]
+
+        if WHICH_TEST == 'broken':
+            windo = TextureStackBatchWidget()
+        else:
+            windo = Widget()
+        for kw in SPOT_DATA:
+            windo.add_widget(ImageStack(**kw))
+        for kw in PAWN_DATA:
+            if 'paths' not in kw:
+                kw['paths'] = ['atlas://rltiles/dc-mon.atlas/fungus']
+            windo.add_widget(ImageStack(**kw))
+        runTouchApp(windo)
